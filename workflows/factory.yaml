@@ -1,0 +1,336 @@
+name: Dark Factory
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_iterations:
+        description: "Maximum convergence iterations"
+        required: false
+        default: "5"
+        type: string
+      satisfaction_threshold:
+        description: "Satisfaction score to stop (0.0-1.0)"
+        required: false
+        default: "0.80"
+        type: string
+      target_branch:
+        description: "Branch to run factory on (default: triggering branch)"
+        required: false
+        default: ""
+        type: string
+  push:
+    branches:
+      - "factory/**"
+      - "df-crank-**"
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: factory-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+jobs:
+  factory-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Setup ──────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_branch || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Set up Node.js (for Codex CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Initialize factory state
+        run: |
+          mkdir -p artifacts/factory
+          if [ ! -f artifacts/factory/iteration_count.txt ]; then
+            echo "0" > artifacts/factory/iteration_count.txt
+          fi
+
+      # ── Convergence Loop ───────────────────────────────────
+      - name: Run convergence loop
+        id: factory
+        run: |
+          MAX_ITER=${{ inputs.max_iterations || '5' }}
+          THRESHOLD=${{ inputs.satisfaction_threshold || '0.80' }}
+          CURRENT_ITER=$(cat artifacts/factory/iteration_count.txt)
+          SATISFIED=false
+          SCORE=0.0
+          ITER=0
+
+          echo "Starting factory loop: max=$MAX_ITER, threshold=$THRESHOLD, current_iter=$CURRENT_ITER"
+
+          # ── Validation-only mode (no Codex API key) ──────────────
+          # When no OPENAI_API_KEY, run a single validation pass (Gate 1 + Gate 3)
+          # and exit. No state commits, no convergence loop.
+          # This is the expected mode when Claude Code orchestrates via browser.
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "No OPENAI_API_KEY — running validation-only pass (no convergence loop)"
+            echo ""
+            echo "--- Gate 1: lint + typecheck + test ---"
+            GATE1_PASS=true
+            make lint 2>&1 | tee -a artifacts/factory/ci_output.log || GATE1_PASS=false
+            make typecheck 2>&1 | tee -a artifacts/factory/ci_output.log || GATE1_PASS=false
+            make test 2>&1 | tee -a artifacts/factory/ci_output.log || GATE1_PASS=false
+
+            if [ "$GATE1_PASS" = true ] && [ -d scenarios ]; then
+              echo "--- Gate 3: Behavioral scenarios ---"
+              python packages/dark-factory/scripts/run_scenarios.py --timeout 180 2>&1 | tee -a artifacts/factory/ci_output.log || true
+              if [ -f artifacts/factory/scenario_results.json ]; then
+                SCORE=$(python -c "import json; r=json.load(open('artifacts/factory/scenario_results.json')); print(r.get('satisfaction_score', 0.0))")
+                echo "Satisfaction score: $SCORE"
+              fi
+            fi
+
+            echo "Validation-only pass complete. Convergence requires OPENAI_API_KEY or Claude Code orchestration."
+            # ITER stays 0 — no state commit will be pushed
+          else
+            # ── Full convergence loop (Codex API available) ──────────
+            for i in $(seq 1 $MAX_ITER); do
+              ITER=$((CURRENT_ITER + i))
+              echo ""
+              echo "=========================================="
+              echo "FACTORY ITERATION $ITER"
+              echo "=========================================="
+
+              # Clear stale results from previous iteration
+              rm -f artifacts/factory/scenario_results.json
+
+              # ── Gate 1: Deterministic validation ──
+              echo "--- Gate 1: lint + typecheck + test ---"
+              GATE1_PASS=true
+              make lint 2>&1 | tee -a artifacts/factory/ci_output.log || GATE1_PASS=false
+              make typecheck 2>&1 | tee -a artifacts/factory/ci_output.log || GATE1_PASS=false
+              make test 2>&1 | tee -a artifacts/factory/ci_output.log || GATE1_PASS=false
+
+              if [ "$GATE1_PASS" = false ]; then
+                echo "Gate 1 FAILED — skipping scenarios, compiling feedback"
+                echo '{"total":0,"passed":0,"failed":0,"skipped":0,"satisfaction_score":0.0,"results":[],"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","gate1_failed":true}' > artifacts/factory/scenario_results.json
+              else
+                # ── Gate 3: Behavioral scenarios ──
+                echo "--- Gate 3: Behavioral scenarios ---"
+                # Restore scenarios from safe location for evaluation
+                if [ -d /tmp/factory_scenarios ]; then
+                  cp -r /tmp/factory_scenarios scenarios
+                else
+                  echo "WARNING: /tmp/factory_scenarios not found — using in-place scenarios"
+                fi
+                python packages/dark-factory/scripts/run_scenarios.py --timeout 180 2>&1 | tee -a artifacts/factory/ci_output.log
+                # Move scenarios out before Codex step
+                # NOTE: /tmp/ is readable by Codex — this is a prompt-level control only.
+                # True holdout isolation requires a separate evaluation job (see ProjectLeadAsks).
+                mv scenarios /tmp/factory_scenarios 2>/dev/null || true
+              fi
+
+              # ── Check satisfaction (injection-safe) ──
+              if [ -f artifacts/factory/scenario_results.json ]; then
+                SCORE=$(python -c "import json; r=json.load(open('artifacts/factory/scenario_results.json')); print(r.get('satisfaction_score', 0.0))")
+                echo "Satisfaction score: $SCORE (threshold: $THRESHOLD)"
+
+                MEETS=$(python -c "import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)" "$SCORE" "$THRESHOLD" && echo "true" || echo "false")
+                if [ "$MEETS" = "true" ]; then
+                  echo "SATISFIED — satisfaction threshold met!"
+                  SATISFIED=true
+                  echo "$ITER" > artifacts/factory/iteration_count.txt
+                  break
+                fi
+              else
+                echo "WARNING: No scenario_results.json — skipping satisfaction check"
+                SCORE=0.0
+              fi
+
+              # ── Compile feedback ──
+              echo "--- Compiling feedback ---"
+              python packages/dark-factory/scripts/compile_feedback.py --iteration $ITER 2>&1
+
+              # ── Invoke Codex ──
+              echo "--- Invoking Codex (iteration $ITER) ---"
+              mv scenarios /tmp/factory_scenarios 2>/dev/null || true
+
+              FEEDBACK_FILE="artifacts/factory/feedback_iter_${ITER}.md"
+              CODEX_PROMPT="Read packages/dark-factory/prompts/factory_fix.md for your instructions. Read ${FEEDBACK_FILE} for the current failures to fix. Read the specs in /specs/ for requirements."
+
+              npx @openai/codex exec \
+                --prompt "$CODEX_PROMPT" \
+                --sandbox workspace-write \
+                2>&1 | tee -a artifacts/factory/ci_output.log || true
+
+              # Restore scenarios after Codex runs
+              if [ -d /tmp/factory_scenarios ]; then
+                cp -r /tmp/factory_scenarios scenarios
+              fi
+
+              # Commit Codex changes
+              git config user.name "dark-factory[bot]"
+              git config user.email "dark-factory[bot]@users.noreply.github.com"
+              git add -A
+              git diff --staged --quiet || git commit -m "factory: iteration $ITER — codex fix
+
+              Satisfaction: $SCORE
+              Co-Authored-By: OpenAI Codex <noreply@openai.com>"
+
+              echo "$ITER" > artifacts/factory/iteration_count.txt
+            done
+          fi
+
+          # ── Export results ──
+          echo "satisfied=$SATISFIED" >> $GITHUB_OUTPUT
+          echo "final_score=${SCORE:-0.0}" >> $GITHUB_OUTPUT
+          echo "iterations=${ITER:-0}" >> $GITHUB_OUTPUT
+
+      # ── Post-loop actions ──────────────────────────────────
+      - name: Commit factory state
+        if: steps.factory.outputs.iterations != '0'
+        run: |
+          git config user.name "dark-factory[bot]"
+          git config user.email "dark-factory[bot]@users.noreply.github.com"
+          git add artifacts/factory/feedback_iter_*.md artifacts/factory/iteration_count.txt
+          git diff --staged --quiet || git commit -m "factory: update factory state after ${{ steps.factory.outputs.iterations }} iterations"
+          git push || true
+
+      # ── Accept/Merge Gate ──────────────────────────────────
+      # The factory NEVER auto-merges. On convergence, it creates
+      # (or updates) a PR for the project lead to review and merge.
+      # This is the human decision point — the only place where
+      # a human evaluates whether factory output ships.
+
+      - name: Create or update PR (convergence gate)
+        if: steps.factory.outputs.satisfied == 'true' && steps.factory.outputs.iterations != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = '${{ steps.factory.outputs.final_score }}';
+            const iters = '${{ steps.factory.outputs.iterations }}';
+            const branch = context.ref.replace('refs/heads/', '');
+            const baseBranch = 'main';
+
+            const body = `## Dark Factory — Converged ✅
+
+            **Satisfaction score: ${(parseFloat(score) * 100).toFixed(0)}%**
+            Iterations: ${iters}
+
+            The factory loop has met the satisfaction threshold.
+
+            ### Accept/Merge Gate
+            This PR was produced entirely by the dark factory convergence loop.
+            Code was never reviewed during production — correctness was inferred
+            from behavioral scenario evaluation.
+
+            **Before merging, verify:**
+            - [ ] Satisfaction score meets your quality bar
+            - [ ] Review \`artifacts/factory/feedback_iter_${iters}.md\` for residual warnings
+            - [ ] Run \`make factory-local\` locally if you want additional confidence
+            - [ ] No unexpected files or dependencies introduced
+
+            **To merge:** Approve and merge this PR. The factory branch can then be deleted.
+            **To reject:** Close this PR and either adjust scenarios/specs or trigger another factory run.`;
+
+            // Check for existing PR from this branch
+            const { data: existingPrs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              base: baseBranch,
+              state: 'open'
+            });
+
+            if (existingPrs.length > 0) {
+              // Update existing PR
+              const pr = existingPrs[0];
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                body: body
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `Factory converged at ${(parseFloat(score) * 100).toFixed(0)}% after ${iters} iterations. Ready for accept/merge review.`
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['factory-converged', 'accept-merge-gate']
+              });
+            } else {
+              // Create new PR
+              const { data: pr } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Factory] Converged at ${(parseFloat(score) * 100).toFixed(0)}% — ready for accept/merge`,
+                head: branch,
+                base: baseBranch,
+                body: body
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['factory-converged', 'accept-merge-gate']
+              });
+            }
+
+      - name: Post PR comment (stalled)
+        if: steps.factory.outputs.satisfied == 'false' && steps.factory.outputs.iterations != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = '${{ steps.factory.outputs.final_score }}';
+            const iters = '${{ steps.factory.outputs.iterations }}';
+            const body = `## Dark Factory — Stalled
+
+            **Satisfaction score: ${(parseFloat(score) * 100).toFixed(0)}%** (threshold not met)
+            Iterations used: ${iters}
+
+            The factory loop did not converge. Escalation needed — tag the project lead.
+
+            Check \`artifacts/factory/feedback_iter_${iters}.md\` for the latest failure analysis.`;
+
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+              state: 'open'
+            });
+
+            for (const pr of prs) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: body
+              });
+            }
+
+      - name: Upload factory artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: factory-artifacts
+          path: artifacts/factory/
