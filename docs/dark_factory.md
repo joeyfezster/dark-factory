@@ -13,10 +13,10 @@ This file is the **operating manual** — the "what" and "why" of the factory. O
 | Concept | Source of Truth | This File |
 |---------|----------------|-----------|
 | Convergence loop steps | `packages/dark-factory/SKILL.md` | Summary in ASCII diagram |
-| Gate 0 two-tier composition | `factory-orchestrate/SKILL.md` Step 4 | Behavioral contract only |
+| Gate 0 two-tier composition | `packages/dark-factory/SKILL.md` Step 4 | Behavioral contract only |
 | Gate 0 review paradigm docs | `packages/review-prompts/` | References, doesn't repeat |
 | PR review pack pipeline | `packages/pr-review-pack/SKILL.md` | What the human reviews |
-| Code quality standards | `docs/code_quality_standards.md` | References, doesn't repeat |
+| Code quality standards | `packages/dark-factory/docs/code_quality_standards.md` | References, doesn't repeat |
 
 When updating gate behavior or agent composition, update the **skill first**, then check this file's summary still holds.
 
@@ -39,7 +39,7 @@ Claude Code runs the convergence loop via the `/factory-orchestrate` skill, usin
              ▼
 ┌─────────────────────────────────────────────────┐
 │         CLAUDE CODE (Orchestrator)               │
-│         .claude/skills/factory-orchestrate        │
+│         packages/dark-factory (orchestrator)       │
 │                                                   │
 │  for each iteration:                              │
 │    1. Create df-crank-vXX branch                  │
@@ -275,11 +275,11 @@ Architecture decisions that are correct for the current proof-of-concept but sho
 | `/packages/dark-factory/scripts/nfr_checks.py` | Factory | Gate 0 tier 1 checks + Gate 2 NFR framework |
 | `/packages/dark-factory/scripts/check_test_quality.py` | Factory | Gate 0 tier 1 — vacuous test detection |
 | `/.github/workflows/factory.yaml` | Factory | CI validation on push |
-| `/prompts/factory_fix.md` | Factory | Codex instruction template |
+| `/packages/dark-factory/prompts/factory_fix.md` | Factory | Codex instruction template |
 | `/packages/review-prompts/` | Factory | Gate 0 review agent paradigm docs (adversarial, code-health, security, test-integrity) |
 | `/packages/dark-factory/` | Factory | Claude Code orchestration skill |
 | `/packages/pr-review-pack/` | Factory | PR review pack generation (accept/merge gate) |
-| `/docs/code_quality_standards.md` | Factory | Universal code quality standards |
+| `/packages/dark-factory/docs/code_quality_standards.md` | Factory | Universal code quality standards |
 | `/docs/factory_architecture.html` | Factory | Interactive architecture diagram |
 | `/CLAUDE.md` | Factory | Repo-level context for Claude Code |
 | `/artifacts/factory/feedback_iter_*.md` | Factory | Iteration feedback (Codex reads) |

@@ -2,7 +2,7 @@
 
 Universal standards for all code written in this repository — whether by Codex (attractor), Claude Code (orchestrator), or humans. These are not guidelines; they are gates.
 
-This file is the canonical source for quality rules. Referenced by `factory_fix.md`, Gate 0 review agent prompts (`.claude/skills/factory-orchestrate/review-prompts/`), and `factory-orchestrate/SKILL.md`. Enforcement mechanism (which gates run what): see `factory-orchestrate/SKILL.md`.
+This file is the canonical source for quality rules. Referenced by `factory_fix.md`, Gate 0 review agent prompts (`packages/review-prompts/`), and `packages/dark-factory/SKILL.md`. Enforcement mechanism (which gates run what): see `packages/dark-factory/SKILL.md`.
 
 ## Anti-Vacuous Test Rules
 
@@ -81,7 +81,7 @@ NFR findings are non-blocking but tracked. They feed into the feedback loop and 
 These standards are enforced at multiple levels:
 
 1. **`packages/dark-factory/scripts/check_test_quality.py`** — AST-based scanner detecting tautological asserts, zero-assertion tests, excessive mocking, stub implementations, hardcoded returns, lookup tables.
-2. **Gate 0: Adversarial Review (Agent Team)** — Parallel agent team catches vacuous tests, gaming, architectural dishonesty, spec violations before merge. Any CRITICAL finding blocks. See `.claude/skills/factory-orchestrate/SKILL.md` Step 4 for agent team composition.
+2. **Gate 0: Adversarial Review (Agent Team)** — Parallel agent team catches vacuous tests, gaming, architectural dishonesty, spec violations before merge. Any CRITICAL finding blocks. See `packages/dark-factory/SKILL.md` Step 4 for agent team composition.
 3. **Gate 1: Deterministic CI** — `make lint && make typecheck && make test` must all pass.
 4. **Gate 2: NFR checks** — pluggable non-functional requirement validators.
 5. **LLM-as-Judge** — Claude Code reasons holistically through all gate outputs, factoring in NFR findings and trajectory.

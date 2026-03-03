@@ -105,7 +105,11 @@ python packages/dark-factory/scripts/run_gate0.py
 
    Each agent also receives: `gate0_results.json` (tier 1 findings) + `docs/code_quality_standards.md` + the diff. The adversarial reviewer additionally receives `/specs/*.md`.
 
-4. **Aggregate findings.** Collect all tier 2 agent outputs + tier 1 results. Each finding has a severity: CRITICAL, WARNING, or NIT.
+   **File persistence (non-negotiable):** Each agent MUST write its findings to `artifacts/factory/gate0_tier2_{paradigm}.md` (e.g., `gate0_tier2_code_health.md`, `gate0_tier2_security.md`, `gate0_tier2_test_integrity.md`, `gate0_tier2_adversarial.md`). This is in ADDITION to sending a message to the team lead. Findings survive context compaction only if they are on disk. SendMessage alone is not durable.
+
+   **Stuck agent recovery:** If an agent becomes unresponsive (e.g., after context compaction or session restart), the orchestrator checks for its output file. If the file exists and is complete, the agent's work is recovered. If not, the orchestrator stops the stuck agent and re-spawns a replacement for that paradigm only — no need to re-run the entire team.
+
+4. **Aggregate findings.** Collect all tier 2 agent outputs from `artifacts/factory/gate0_tier2_*.md` + tier 1 results from `gate0_results.json`. Each finding has a severity: CRITICAL, WARNING, or NIT. File artifacts are the source of truth — not messages, which may be lost to compaction.
 
 5. **Fail-fast rule:** If **any tier** (1 or 2) reports a CRITICAL finding, Gate 0 fails. Do NOT proceed to later gates (1-3). However, **DO merge Codex's changes onto the factory branch** so that iteration N+1 is incremental — Codex iterates on its own code with feedback, rather than rebuilding from scratch. Compile all findings (from both tiers) as feedback and loop back to Step 3 with specific remediation instructions.
 

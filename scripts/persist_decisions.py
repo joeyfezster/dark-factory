@@ -24,7 +24,7 @@ def _get_repo_root() -> Path:
     """Walk up from this file to find the git repo root."""
     current = Path(__file__).resolve().parent
     for parent in [current, *current.parents]:
-        if (parent / ".git").is_dir():
+        if (parent / ".git").exists():
             return parent
     raise RuntimeError("Repo root not found -- no .git directory in any parent")
 
