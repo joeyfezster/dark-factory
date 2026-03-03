@@ -33,7 +33,7 @@ Read the decision log for architectural context from previous cranks:
 - `/packages/dark-factory/scripts/run_scenarios.py`
 - `/packages/dark-factory/scripts/compile_feedback.py`
 - `/.github/workflows/factory.yaml`
-- `/prompts/factory_fix.md` (this file)
+- `/packages/dark-factory/prompts/factory_fix.md` (this file)
 - `/CLAUDE.md`
 - `/packages/dark-factory/scripts/strip_holdout.py` (holdout isolation gate)
 - `/packages/dark-factory/scripts/restore_holdout.py` (holdout restoration)
