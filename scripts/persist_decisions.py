@@ -5,9 +5,9 @@ Extracts decisions from ReviewPackData JSON (or from rendered HTML as fallback)
 and appends them to docs/decisions/decision_log.json.
 
 Usage:
-    python packages/dark-factory/scripts/persist_decisions.py --pr 6
-    python packages/dark-factory/scripts/persist_decisions.py --pr 6 --data /tmp/pr6_data.json
-    python packages/dark-factory/scripts/persist_decisions.py --pr 6 --dry-run
+    python scripts/persist_decisions.py --pr 6
+    python scripts/persist_decisions.py --pr 6 --data /tmp/pr6_data.json
+    python scripts/persist_decisions.py --pr 6 --repo owner/repo --dry-run
 """
 
 from __future__ import annotations
@@ -31,7 +31,21 @@ def _get_repo_root() -> Path:
 
 REPO_ROOT = _get_repo_root()
 DEFAULT_LOG = REPO_ROOT / "docs" / "decisions" / "decision_log.json"
-REPO_SLUG = "joeyfezster/building_ai_w_ai"
+
+
+def _get_repo_slug(override: str | None = None) -> str:
+    """Return owner/repo from CLI flag or git remote origin."""
+    if override:
+        return override
+    url = subprocess.check_output(
+        ["git", "remote", "get-url", "origin"], text=True
+    ).strip()
+    # git@github.com:owner/repo.git  OR  https://github.com/owner/repo.git
+    if ":" in url and "@" in url:
+        slug = url.split(":")[-1]
+    else:
+        slug = "/".join(url.split("/")[-2:])
+    return slug.removesuffix(".git")
 
 
 def load_decision_log(path: Path) -> dict:
@@ -121,9 +135,9 @@ def get_merge_timestamp(pr_number: int) -> str:
     sys.exit(1)
 
 
-def get_pr_url(pr_number: int) -> str:
+def get_pr_url(pr_number: int, repo_slug: str) -> str:
     """Build the PR URL."""
-    return f"https://github.com/{REPO_SLUG}/pull/{pr_number}"
+    return f"https://github.com/{repo_slug}/pull/{pr_number}"
 
 
 def build_persisted_decision(
@@ -132,6 +146,7 @@ def build_persisted_decision(
     global_seq: int,
     merged_at: str,
     head_sha: str,
+    repo_slug: str = "",
 ) -> dict:
     """Convert a raw Decision (from review pack) to the persisted format."""
     local_seq = raw["number"]
@@ -149,7 +164,7 @@ def build_persisted_decision(
         "files": raw.get("files", []),
         "verified": raw.get("verified", False),
         "mergedAt": merged_at,
-        "prUrl": get_pr_url(pr_number),
+        "prUrl": get_pr_url(pr_number, repo_slug),
         "headSha": head_sha,
         "status": "active",
     }
@@ -173,6 +188,12 @@ def main() -> int:
         type=str,
         default=None,
         help=f"Path to decision log (default: {DEFAULT_LOG})",
+    )
+    parser.add_argument(
+        "--repo",
+        type=str,
+        default=None,
+        help="GitHub repo slug (owner/repo). Auto-detected from git remote if omitted.",
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="Preview without modifying the log"
@@ -218,6 +239,7 @@ def main() -> int:
     seq = next_global_seq(log)
 
     # --- Get metadata ---
+    repo_slug = _get_repo_slug(args.repo)
     merged_at = get_merge_timestamp(args.pr)
     head_sha = header.get("headSha", "unknown")
 
@@ -233,7 +255,7 @@ def main() -> int:
             skipped += 1
             continue
 
-        persisted = build_persisted_decision(raw, args.pr, seq, merged_at, head_sha)
+        persisted = build_persisted_decision(raw, args.pr, seq, merged_at, head_sha, repo_slug)
 
         if args.dry_run:
             print(f"\n  WOULD ADD: {decision_id} (globalSeq={seq})")

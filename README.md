@@ -10,13 +10,37 @@ Seed --> Agent --> Validate --> Feedback --> Repeat until satisfied
 
 The factory orchestrator (Claude Code) drives the loop. The coding agent (OpenAI Codex or any non-interactive coding agent) writes the code. The factory never inspects the code for correctness -- it only evaluates observable behavior through automated gates and holdout scenarios.
 
+## Installation
+
+Clone into your repo's Claude Code skills directory:
+
+```bash
+git clone https://github.com/joeyfezster/dark-factory.git .claude/skills/factory-orchestrate
+```
+
+The factory also uses the [PR Review Pack](https://github.com/joeyfezster/pr-review-pack) for generating merge-gate reports:
+
+```bash
+git clone https://github.com/joeyfezster/pr-review-pack.git .claude/skills/pr-review-pack
+pip install -r .claude/skills/pr-review-pack/requirements.txt
+```
+
 ## Prerequisites
 
-- **Claude Code** (factory orchestrator)
-- **OpenAI Codex** or any coding agent that can work from a branch and produce code
+**Required:**
 - **Python 3.12+**
-- **git** and **gh CLI** (authenticated)
-- Claude Code Agent Teams for Gate 0 Tier 2 (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`)
+- **git**
+- **gh CLI** (authenticated -- run `gh auth login`) -- used by `scripts/persist_decisions.py` for GitHub API calls
+- **Claude Code** with Agent Teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`)
+- **OpenAI Codex** or any non-interactive coding agent that can work from a branch
+
+**Optional (for Gate 0 Tier 1 and Gate 2 NFR checks):**
+- `ruff` -- code quality (`pip install ruff`)
+- `radon` -- cyclomatic complexity (`pip install radon`)
+- `vulture` -- dead code detection (`pip install vulture`)
+- `bandit` -- security scanning (`pip install bandit`)
+
+Scripts handle missing optional tools gracefully -- checks are skipped with a warning, not a crash.
 
 ## Gate Structure
 
@@ -124,7 +148,7 @@ Scenarios test observable behavior, not implementation details. The coding agent
 
 ## Includes PR Review Pack
 
-The Dark Factory includes the [PR Review Pack](../pr-review-pack/) as the human decision artifact. When the factory converges (all scenarios passing), it generates a self-contained interactive HTML review pack. The project lead reviews the report, not the code. The review pack shows what changed, what the risks are, and what to watch post-merge.
+The Dark Factory includes the [PR Review Pack](https://github.com/joeyfezster/pr-review-pack) as the human decision artifact. When the factory converges (all scenarios passing), it generates a self-contained interactive HTML review pack. The project lead reviews the report, not the code. The review pack shows what changed, what the risks are, and what to watch post-merge.
 
 ## License
 
