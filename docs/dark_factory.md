@@ -39,7 +39,7 @@ Claude Code runs the convergence loop via the `/factory-orchestrate` skill, usin
              ▼
 ┌─────────────────────────────────────────────────┐
 │         CLAUDE CODE (Orchestrator)               │
-│         packages/dark-factory (orchestrator)       │
+│         dark-factory (orchestrator)                 │
 │                                                   │
 │  for each iteration:                              │
 │    1. Create df-crank-vXX branch                  │
