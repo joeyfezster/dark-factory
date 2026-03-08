@@ -146,6 +146,18 @@ What artifacts prove the scenario passed.
 
 Scenarios test observable behavior, not implementation details. The coding agent could implement the system any way it wants -- the scenarios only check that the behavior matches the spec.
 
+## Permissions & Setup
+
+### Browser Setup
+
+The factory orchestrator drives Codex via Chrome. Ensure:
+- Chrome is logged into Codex (ChatGPT Plus account)
+- The repository is accessible from the Codex UI
+
+### Claude Code Permissions
+
+The skill's `allowed-tools` pre-approves `Bash`, `Read`, `Write`, `Glob`, `Grep`, `Edit` to avoid permission prompts during orchestration.
+
 ## Includes PR Review Pack
 
 The Dark Factory includes the [PR Review Pack](https://github.com/joeyfezster/pr-review-pack) as the human decision artifact. When the factory converges (all scenarios passing), it generates a self-contained interactive HTML review pack. The project lead reviews the report, not the code. The review pack shows what changed, what the risks are, and what to watch post-merge.

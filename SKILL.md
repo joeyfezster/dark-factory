@@ -26,8 +26,6 @@ A crank is NOT complete until the factory branch is merged to main. Convergence 
 
 ## Prerequisites
 
-- Chrome is logged into Codex (ChatGPT Plus account)
-- Repository: `joeyfezster/building_ai_w_ai`
 - Branch to base work on: confirm with user or default to `factory/v1`
 - Max iterations: confirm with user or default to 5
 
@@ -317,18 +315,20 @@ If after 3+ iterations:
 
 ## Reference Files
 
-- **Attractor prompt**: `prompts/factory_fix.md`
-- **Gate 0 tier 1 runner**: `scripts/run_gate0.py` (deterministic tool checks → `gate0_results.json`)
-- **Gate 0 tier 2 review prompts**: `review-prompts/` (all paradigm docs in this directory)
-- **Code quality standards**: `docs/code_quality_standards.md`
-- **NFR checks script**: `scripts/nfr_checks.py` (Gate 0 tier 1 static analysis + Gate 2 NFR framework)
-- **Test quality scanner**: `scripts/check_test_quality.py` (Gate 0 tier 1)
-- **PR review pack skill**: `packages/pr-review-pack/SKILL.md` (Step 12)
-- **Decision log**: `docs/decisions/decision_log.json` (Step 13, cumulative archive)
-- **Decision persistence**: `scripts/persist_decisions.py` (Step 13)
-- **Specs**: `specs/*.md`
-- **Factory docs**: `docs/dark_factory.md`
-- **Factory architecture**: `docs/factory_architecture.html`
+- `prompts/factory_fix.md` — attractor prompt
+- `scripts/run_gate0.py` — Gate 0 tier 1 runner
+- `scripts/nfr_checks.py` — Gate 2 NFR checks
+- `scripts/check_test_quality.py` — test quality scanner
+- `scripts/persist_decisions.py` — decision persistence (Step 13)
+- `review-prompts/` — Gate 0 tier 2 paradigm docs
+- `docs/code_quality_standards.md` — code quality standards
+- `docs/dark_factory.md` — factory documentation
+- `docs/factory_architecture.html` — factory architecture
+- `docs/decisions/decision_log.json` — cumulative decision archive
+- `docs/dark_factory.md` — factory documentation
+- `docs/factory_architecture.html` — factory architecture diagram
+- `packages/pr-review-pack/SKILL.md` — PR review pack skill (Step 12)
+- `specs/*.md` — component specifications
 
 ## Operational Knowledge
 
