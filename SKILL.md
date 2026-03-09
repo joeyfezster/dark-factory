@@ -92,7 +92,7 @@ python packages/dark-factory/scripts/run_gate0.py
 
 #### Tier 2: LLM Semantic Review Agents
 
-3. **Spawn the Tier 2 agent team.** Use `TeamCreate` and launch these 4 agents in parallel via the `Task` tool. Each agent receives: the diff, the tier 1 results (`gate0_results.json`), and its paradigm-specific review prompt from `review-prompts/`.
+3. **Spawn the Tier 2 agent team.** Use `TeamCreate` and launch these 5 agents in parallel via the `Task` tool. Each agent receives: the diff, the tier 1 results (`gate0_results.json`), and its paradigm-specific review prompt from `review-prompts/`.
 
    | Agent | Paradigm Review Prompt | Paradigm |
    |-------|----------------------|----------|
@@ -100,10 +100,11 @@ python packages/dark-factory/scripts/run_gate0.py
    | `security-reviewer` | `security_review.md` | Security vulnerabilities |
    | `test-integrity-reviewer` | `test_integrity_review.md` | Test quality and integrity |
    | `adversarial-reviewer` | `adversarial_review.md` | Holistic: gaming, spec violations, architectural dishonesty |
+   | `architecture-reviewer` | `architecture_review.md` | Zone coverage, coupling, structural changes, architecture documentation |
 
-   Each agent also receives: `gate0_results.json` (tier 1 findings) + `docs/code_quality_standards.md` + the diff. The adversarial reviewer additionally receives `/specs/*.md`.
+   Each agent also receives: `gate0_results.json` (tier 1 findings) + `docs/code_quality_standards.md` + the diff. The adversarial reviewer additionally receives `/specs/*.md`. The architecture reviewer additionally receives the full repo file tree, the architecture section from scaffold JSON, and whatever architecture docs exist in the repo.
 
-   **File persistence (non-negotiable):** Each agent MUST write its findings to `artifacts/factory/gate0_tier2_{paradigm}.md` (e.g., `gate0_tier2_code_health.md`, `gate0_tier2_security.md`, `gate0_tier2_test_integrity.md`, `gate0_tier2_adversarial.md`). This is in ADDITION to sending a message to the team lead. Findings survive context compaction only if they are on disk. SendMessage alone is not durable.
+   **File persistence (non-negotiable):** Each agent MUST write its findings to `artifacts/factory/gate0_tier2_{paradigm}.md` (e.g., `gate0_tier2_code_health.md`, `gate0_tier2_security.md`, `gate0_tier2_test_integrity.md`, `gate0_tier2_adversarial.md`, `gate0_tier2_architecture.md`). This is in ADDITION to sending a message to the team lead. Findings survive context compaction only if they are on disk. SendMessage alone is not durable.
 
    **Stuck agent recovery:** If an agent becomes unresponsive (e.g., after context compaction or session restart), the orchestrator checks for its output file. If the file exists and is complete, the agent's work is recovered. If not, the orchestrator stops the stuck agent and re-spawns a replacement for that paradigm only — no need to re-run the entire team.
 
@@ -335,7 +336,7 @@ If after 3+ iterations:
 ### Layered Defense Against Gaming
 The factory's quality defense is layered — no single gate is sufficient:
 1. **Gate 0 tier 1** (deterministic, `run_gate0.py`) — all 5 tool checks in parallel (ruff, radon, vulture, bandit, test-quality). Catches dead code, complexity, security issues, lint violations, and obvious vacuous test patterns. Fast, cheap, runs in seconds. Risk: AST/regex-level analysis can be fooled by sophisticated gaming.
-2. **Gate 0 tier 2** (LLM agent team, parallel) — 4 specialized agents review through the same paradigms at semantic depth. The code-health, security, and test-integrity reviewers build on tier 1 output. The adversarial reviewer reads the full diff holistically against specs and quality standards. Catches what tools miss: semantic dead code, auth bypasses, tests that prove nothing, gaming, architectural dishonesty.
+2. **Gate 0 tier 2** (LLM agent team, parallel) — 5 specialized agents review through the same paradigms at semantic depth. The code-health, security, and test-integrity reviewers build on tier 1 output. The adversarial reviewer reads the full diff holistically against specs and quality standards. The architecture reviewer assesses zone coverage, coupling, and structural changes. Catches what tools miss: semantic dead code, auth bypasses, tests that prove nothing, gaming, architectural dishonesty.
 3. **Gate 3 holdout scenarios** — behavioral evaluation against criteria the attractor never sees (ground truth). If the code actually works, gaming doesn't matter.
 
 Tier 1 and tier 2 run at Gate 0 before merge. Any CRITICAL finding from either tier stops the pipeline. No single layer is sufficient — tools catch the cheap stuff fast, LLM agents catch the clever stuff, and holdout scenarios verify actual behavior.

@@ -60,7 +60,7 @@ The first line of defense. No point sending code to CI if Gate 0 finds critical 
 | `security` | bandit | Security vulnerability patterns |
 | `test_quality` | check_test_quality.py | Vacuous tests, stub assertions, mock abuse |
 
-**Tier 2: LLM Semantic Review Agents** -- 4 review agents run in parallel via Claude Code Agent Teams:
+**Tier 2: LLM Semantic Review Agents** -- 5 review agents run in parallel via Claude Code Agent Teams:
 
 | Agent | Focus |
 |-------|-------|
@@ -68,6 +68,7 @@ The first line of defense. No point sending code to CI if Gate 0 finds critical 
 | Security Reviewer | Security vulnerabilities |
 | Test Integrity Reviewer | Test quality and integrity |
 | Adversarial Reviewer | Gaming, spec violations, architectural dishonesty |
+| Architecture Reviewer | Zone coverage, coupling, structural changes, architecture documentation |
 
 Each agent reviews independently in a separate context window, structurally guaranteeing anti-anchoring. Tier 2 builds on Tier 1 output -- agents receive the deterministic findings as context.
 
