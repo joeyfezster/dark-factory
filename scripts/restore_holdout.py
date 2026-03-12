@@ -7,9 +7,9 @@ and Makefile targets from a clean source (default: origin/main).
 This script does NOT commit — the caller decides when to commit.
 
 Usage:
-    python packages/dark-factory/scripts/restore_holdout.py
-    python packages/dark-factory/scripts/restore_holdout.py --ref origin/main
-    python packages/dark-factory/scripts/restore_holdout.py --dry-run
+    python scripts/restore_holdout.py
+    python scripts/restore_holdout.py --ref origin/main
+    python scripts/restore_holdout.py --dry-run
 """
 
 from __future__ import annotations

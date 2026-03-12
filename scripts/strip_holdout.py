@@ -8,9 +8,9 @@ This is a factory gate — non-circumventable. The attractor literally
 cannot see evaluation criteria because they don't exist on its branch.
 
 Usage:
-    python packages/dark-factory/scripts/strip_holdout.py              # strip and commit
-    python packages/dark-factory/scripts/strip_holdout.py --dry-run    # show what would be removed
-    python packages/dark-factory/scripts/strip_holdout.py --no-commit  # strip but don't commit
+    python scripts/strip_holdout.py              # strip and commit
+    python scripts/strip_holdout.py --dry-run    # show what would be removed
+    python scripts/strip_holdout.py --no-commit  # strip but don't commit
 """
 
 from __future__ import annotations
@@ -187,7 +187,7 @@ def git_commit_strip(repo_root: Path) -> bool:
             f"{MARKER} Strip holdout scenarios before attractor\n\n"
             "Deterministic removal of /scenarios/ and related Makefile targets.\n"
             "Attractor (Codex) cannot see evaluation criteria on this branch.\n"
-            "Restore with: python packages/dark-factory/scripts/restore_holdout.py",
+            "Restore with: python scripts/restore_holdout.py",
         ],
         cwd=str(repo_root),
         check=True,
