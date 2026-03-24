@@ -98,7 +98,7 @@ jobs:
 
             if [ "$GATE1_PASS" = true ] && [ -d scenarios ]; then
               echo "--- Gate 3: Behavioral scenarios ---"
-              python packages/dark-factory/scripts/run_scenarios.py --timeout 180 2>&1 | tee -a artifacts/factory/ci_output.log || true
+              python scripts/run_scenarios.py --timeout 180 2>&1 | tee -a artifacts/factory/ci_output.log || true
               if [ -f artifacts/factory/scenario_results.json ]; then
                 SCORE=$(python -c "import json; r=json.load(open('artifacts/factory/scenario_results.json')); print(r.get('satisfaction_score', 0.0))")
                 echo "Satisfaction score: $SCORE"
@@ -138,7 +138,7 @@ jobs:
                 else
                   echo "WARNING: /tmp/factory_scenarios not found — using in-place scenarios"
                 fi
-                python packages/dark-factory/scripts/run_scenarios.py --timeout 180 2>&1 | tee -a artifacts/factory/ci_output.log
+                python scripts/run_scenarios.py --timeout 180 2>&1 | tee -a artifacts/factory/ci_output.log
                 # Move scenarios out before Codex step
                 # NOTE: /tmp/ is readable by Codex — this is a prompt-level control only.
                 # True holdout isolation requires a separate evaluation job (see ProjectLeadAsks).
@@ -164,14 +164,14 @@ jobs:
 
               # ── Compile feedback ──
               echo "--- Compiling feedback ---"
-              python packages/dark-factory/scripts/compile_feedback.py --iteration $ITER 2>&1
+              python scripts/compile_feedback.py --iteration $ITER 2>&1
 
               # ── Invoke Codex ──
               echo "--- Invoking Codex (iteration $ITER) ---"
               mv scenarios /tmp/factory_scenarios 2>/dev/null || true
 
               FEEDBACK_FILE="artifacts/factory/feedback_iter_${ITER}.md"
-              CODEX_PROMPT="Read packages/dark-factory/prompts/factory_fix.md for your instructions. Read ${FEEDBACK_FILE} for the current failures to fix. Read the specs in /specs/ for requirements."
+              CODEX_PROMPT="Read prompts/factory_fix.md for your instructions. Read ${FEEDBACK_FILE} for the current failures to fix. Read the specs in /specs/ for requirements."
 
               npx @openai/codex exec \
                 --prompt "$CODEX_PROMPT" \

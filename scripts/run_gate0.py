@@ -13,9 +13,9 @@ Checks:
     5. test_quality  — AST-based vacuous test / gaming detection
 
 Usage:
-    python packages/dark-factory/scripts/run_gate0.py
-    python packages/dark-factory/scripts/run_gate0.py --json
-    python packages/dark-factory/scripts/run_gate0.py --output path.json
+    python scripts/run_gate0.py
+    python scripts/run_gate0.py --json
+    python scripts/run_gate0.py --output path.json
 
 Exit codes:
     0 — no CRITICAL findings
