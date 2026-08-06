@@ -30,16 +30,16 @@ Read the decision log for architectural context from previous cranks:
 
 **NEVER read, modify, or delete these files:**
 - Anything in `/scenarios/` (you should not even see this directory)
-- `/packages/dark-factory/scripts/run_scenarios.py`
-- `/packages/dark-factory/scripts/compile_feedback.py`
+- `/scripts/run_scenarios.py`
+- `/scripts/compile_feedback.py`
 - `/.github/workflows/factory.yaml`
-- `/packages/dark-factory/prompts/factory_fix.md` (this file)
+- `/prompts/factory_fix.md` (this file)
 - `/CLAUDE.md`
-- `/packages/dark-factory/scripts/strip_holdout.py` (holdout isolation gate)
-- `/packages/dark-factory/scripts/restore_holdout.py` (holdout restoration)
-- `/packages/dark-factory/scripts/nfr_checks.py` (Gate 2 NFR checker)
-- `/packages/dark-factory/scripts/check_test_quality.py` (anti-vacuous scanner)
-- `/packages/dark-factory/scripts/persist_decisions.py` (decision persistence script)
+- `/scripts/strip_holdout.py` (holdout isolation gate)
+- `/scripts/restore_holdout.py` (holdout restoration)
+- `/scripts/nfr_checks.py` (Gate 2 NFR checker)
+- `/scripts/check_test_quality.py` (anti-vacuous scanner)
+- `/scripts/persist_decisions.py` (decision persistence script)
 
 **DO modify** source code in:
 - `src/` — all Python source

@@ -12,11 +12,11 @@ This file is the **operating manual** — the "what" and "why" of the factory. O
 
 | Concept | Source of Truth | This File |
 |---------|----------------|-----------|
-| Convergence loop steps | `packages/dark-factory/SKILL.md` | Summary in ASCII diagram |
-| Gate 0 two-tier composition | `packages/dark-factory/SKILL.md` Step 4 | Behavioral contract only |
-| Gate 0 review paradigm docs | `packages/review-prompts/` | References, doesn't repeat |
-| PR review pack pipeline | `packages/pr-review-pack/SKILL.md` | What the human reviews |
-| Code quality standards | `packages/dark-factory/docs/code_quality_standards.md` | References, doesn't repeat |
+| Convergence loop steps | `SKILL.md` | Summary in ASCII diagram |
+| Gate 0 two-tier composition | `SKILL.md` Step 4 | Behavioral contract only |
+| Gate 0 review paradigm docs | `review-prompts/` | References, doesn't repeat |
+| PR review pack pipeline | `https://github.com/joeyfezster/pr-review-pack/tree/main/SKILL.md` | What the human reviews |
+| Code quality standards | `docs/code_quality_standards.md` | References, doesn't repeat |
 
 When updating gate behavior or agent composition, update the **skill first**, then check this file's summary still holds.
 
@@ -90,8 +90,8 @@ CI runs validation-only on every push to `factory/**` or `df-crank-**` branches:
 ## Validation Gates
 
 ### Gate 0: Two-Tier Code Review (Script + Agent Team)
-- **Tier 1 (deterministic):** `packages/dark-factory/scripts/run_gate0.py` runs all 5 tool checks in parallel (ruff, radon, vulture, bandit, test-quality). Produces `artifacts/factory/gate0_results.json`. Fast, cheap, catches the obvious stuff.
-- **Tier 2 (LLM semantic):** 4 specialized agents review the same paradigms at semantic depth, building on tier 1 output. Agents: code-health, security, test-integrity, adversarial. Paradigm prompts: `packages/review-prompts/`
+- **Tier 1 (deterministic):** `scripts/run_gate0.py` runs all 5 tool checks in parallel (ruff, radon, vulture, bandit, test-quality). Produces `artifacts/factory/gate0_results.json`. Fast, cheap, catches the obvious stuff.
+- **Tier 2 (LLM semantic):** 4 specialized agents review the same paradigms at semantic depth, building on tier 1 output. Agents: code-health, security, test-integrity, adversarial. Paradigm prompts: `review-prompts/`
 - **Fail-fast rule:** Any CRITICAL finding from either tier → stop. Do NOT proceed to Gates 1-3.
 - **On Gate 0 failure:** Merge Codex's code anyway (so iteration N+1 is incremental), commit feedback, push, and loop. Never revert — Codex iterates on its own code with feedback, not from scratch.
 - Clean or WARNING-only across both tiers → proceed to merge + Gate 1
@@ -105,14 +105,14 @@ CI runs validation-only on every push to `factory/**` or `df-crank-**` branches:
 If any fail, Gates 2-3 are skipped. The agent gets the CI errors directly.
 
 ### Gate 2: Non-Functional Requirements (NFRs)
-- `make nfr-check` — extensible framework (`packages/dark-factory/scripts/nfr_checks.py`)
+- `make nfr-check` — extensible framework (`scripts/nfr_checks.py`)
 - **Active checks:** code quality (ruff extended), complexity (radon), dead code (vulture), security (bandit)
 - **Planned checks:** duplication, import hygiene, coverage, maintainability, reliability
 - Non-blocking — findings feed into feedback and LLM-as-judge evaluation
 - Adding a new check: write a function, register in `NFR_CHECKS` dict
 
 ### Gate 3: Behavioral Scenarios
-- `packages/dark-factory/scripts/run_scenarios.py` executes holdout scenarios from `/scenarios/`
+- `scripts/run_scenarios.py` executes holdout scenarios from `/scenarios/`
 - Each scenario runs an evaluation command and checks pass criteria
 - Results produce a satisfaction score: `passed / total`
 
@@ -127,18 +127,18 @@ If any fail, Gates 2-3 are skipped. The agent gets the CI errors directly.
 The factory hides `/scenarios/` from Codex using **branch stripping** — scenarios are physically removed from the branch Codex works on.
 
 ### How it works
-1. `packages/dark-factory/scripts/strip_holdout.py` removes `/scenarios/` and comments out Makefile scenario targets
+1. `scripts/strip_holdout.py` removes `/scenarios/` and comments out Makefile scenario targets
 2. Commits with marker `[factory:holdout-stripped]`
 3. Verifies no scenario files remain on the branch
 4. Stripped branch is pushed to origin — Codex only ever sees this branch
-5. After Codex finishes, `packages/dark-factory/scripts/restore_holdout.py` restores from `origin/main`
+5. After Codex finishes, `scripts/restore_holdout.py` restores from `origin/main`
 
 ### Why branch stripping (not filesystem shuffle)
 The previous approach (`mv scenarios /tmp/`) was security theater — Codex runs in the same job and can read `/tmp/`. Branch stripping is a real gate: scenarios literally don't exist on the branch Codex sees. There's nothing to read, no path to guess, no hidden directory to discover.
 
 ### Scripts
-- `packages/dark-factory/scripts/strip_holdout.py` — deterministic removal, supports `--dry-run` and `--no-commit`
-- `packages/dark-factory/scripts/restore_holdout.py` — deterministic restoration from a git ref, supports `--ref` and `--dry-run`
+- `scripts/strip_holdout.py` — deterministic removal, supports `--dry-run` and `--no-commit`
+- `scripts/restore_holdout.py` — deterministic restoration from a git ref, supports `--ref` and `--dry-run`
 - Both are factory-protected files (never modified by Codex)
 
 ## How to Trigger the Factory
@@ -267,19 +267,19 @@ Architecture decisions that are correct for the current proof-of-concept but sho
 |------|-------|---------|
 | `/specs/*.md` | Human | What the system should do |
 | `/scenarios/*.md` | Human | How to evaluate (holdout) |
-| `/packages/dark-factory/scripts/run_scenarios.py` | Factory | Scenario evaluation engine |
-| `/packages/dark-factory/scripts/compile_feedback.py` | Factory | Feedback generation |
-| `/packages/dark-factory/scripts/strip_holdout.py` | Factory | Holdout stripping (isolation gate) |
-| `/packages/dark-factory/scripts/restore_holdout.py` | Factory | Holdout restoration |
-| `/packages/dark-factory/scripts/run_gate0.py` | Factory | Gate 0 tier 1 — parallel deterministic tool runner |
-| `/packages/dark-factory/scripts/nfr_checks.py` | Factory | Gate 0 tier 1 checks + Gate 2 NFR framework |
-| `/packages/dark-factory/scripts/check_test_quality.py` | Factory | Gate 0 tier 1 — vacuous test detection |
+| `/scripts/run_scenarios.py` | Factory | Scenario evaluation engine |
+| `/scripts/compile_feedback.py` | Factory | Feedback generation |
+| `/scripts/strip_holdout.py` | Factory | Holdout stripping (isolation gate) |
+| `/scripts/restore_holdout.py` | Factory | Holdout restoration |
+| `/scripts/run_gate0.py` | Factory | Gate 0 tier 1 — parallel deterministic tool runner |
+| `/scripts/nfr_checks.py` | Factory | Gate 0 tier 1 checks + Gate 2 NFR framework |
+| `/scripts/check_test_quality.py` | Factory | Gate 0 tier 1 — vacuous test detection |
 | `/.github/workflows/factory.yaml` | Factory | CI validation on push |
-| `/packages/dark-factory/prompts/factory_fix.md` | Factory | Codex instruction template |
-| `/packages/review-prompts/` | Factory | Gate 0 review agent paradigm docs (adversarial, code-health, security, test-integrity) |
-| `/packages/dark-factory/` | Factory | Claude Code orchestration skill |
-| `/packages/pr-review-pack/` | Factory | PR review pack generation (accept/merge gate) |
-| `/packages/dark-factory/docs/code_quality_standards.md` | Factory | Universal code quality standards |
+| `/prompts/factory_fix.md` | Factory | Codex instruction template |
+| `/review-prompts/` | Factory | Gate 0 review agent paradigm docs (adversarial, code-health, security, test-integrity) |
+| `/` | Factory | Claude Code orchestration skill |
+| `/https://github.com/joeyfezster/pr-review-pack/tree/main/` | Factory | PR review pack generation (accept/merge gate) |
+| `/docs/code_quality_standards.md` | Factory | Universal code quality standards |
 | `/docs/factory_architecture.html` | Factory | Interactive architecture diagram |
 | `/CLAUDE.md` | Factory | Repo-level context for Claude Code |
 | `/artifacts/factory/feedback_iter_*.md` | Factory | Iteration feedback (Codex reads) |

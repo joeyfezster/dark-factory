@@ -6,9 +6,9 @@ evaluation methods, and produces a JSON report at
 artifacts/factory/scenario_results.json.
 
 Usage:
-    python packages/dark-factory/scripts/run_scenarios.py
-    python packages/dark-factory/scripts/run_scenarios.py --category environment
-    python packages/dark-factory/scripts/run_scenarios.py --timeout 120
+    python scripts/run_scenarios.py
+    python scripts/run_scenarios.py --category environment
+    python scripts/run_scenarios.py --timeout 120
 """
 
 from __future__ import annotations

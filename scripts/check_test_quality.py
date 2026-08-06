@@ -5,8 +5,8 @@ Scans test files for anti-patterns that indicate tests pass by
 construction rather than exercising real behavior.
 
 Usage:
-    python packages/dark-factory/scripts/check_test_quality.py
-    python packages/dark-factory/scripts/check_test_quality.py --strict
+    python scripts/check_test_quality.py
+    python scripts/check_test_quality.py --strict
 """
 
 from __future__ import annotations

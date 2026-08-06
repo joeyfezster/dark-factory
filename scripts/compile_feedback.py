@@ -5,8 +5,8 @@ Reads scenario results, CI logs, and previous iteration feedback
 to produce structured feedback markdown that Codex can act on.
 
 Usage:
-    python packages/dark-factory/scripts/compile_feedback.py
-    python packages/dark-factory/scripts/compile_feedback.py --iteration 3
+    python scripts/compile_feedback.py
+    python scripts/compile_feedback.py --iteration 3
 """
 
 from __future__ import annotations
@@ -276,8 +276,8 @@ def compile_feedback(
     out.append("")
     out.append("Constraints:")
     out.append(
-        "- Do NOT modify /scenarios/, /packages/dark-factory/scripts/, "
-        "or /packages/dark-factory/workflows/factory.yaml"
+        "- Do NOT modify /scenarios/, /scripts/, "
+        "or /workflows/factory.yaml"
     )
     out.append(
         "- Do NOT modify /specs/ — read them as requirements"

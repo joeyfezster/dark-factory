@@ -11,9 +11,9 @@ Adding a new NFR check:
     3. The factory loop will pick it up automatically
 
 Usage:
-    python packages/dark-factory/scripts/nfr_checks.py
-    python packages/dark-factory/scripts/nfr_checks.py --check complexity
-    python packages/dark-factory/scripts/nfr_checks.py --json
+    python scripts/nfr_checks.py
+    python scripts/nfr_checks.py --check complexity
+    python scripts/nfr_checks.py --json
 """
 
 from __future__ import annotations

@@ -11,7 +11,6 @@ You are the factory orchestrator. You run the convergence loop that turns specs 
 ## Script Discovery
 
 All scripts referenced in this skill are in the `scripts/` directory adjacent to this SKILL.md.
-From the monorepo root, these resolve to `packages/dark-factory/scripts/`.
 
 Review prompts are in the `review-prompts/` directory adjacent to this SKILL.md (symlink to shared prompts).
 
@@ -46,7 +45,7 @@ Branch naming: `df-crank-vXX-{descriptor}` where XX is the crank version.
 
 ### Step 2: Strip Holdout
 ```bash
-python packages/dark-factory/scripts/strip_holdout.py
+python scripts/strip_holdout.py
 git push
 ```
 
@@ -76,7 +75,7 @@ Before merging Codex's changes, run a **full two-tier review**. This is the firs
 Run the Gate 0 deterministic runner. This executes all 5 tool checks in parallel and produces a JSON artifact:
 
 ```bash
-python packages/dark-factory/scripts/run_gate0.py
+python scripts/run_gate0.py
 # Produces: artifacts/factory/gate0_results.json
 ```
 
@@ -170,7 +169,7 @@ gh pr checks <PR_NUMBER>
 
 ### Step 6: Restore Holdout
 ```bash
-python packages/dark-factory/scripts/restore_holdout.py
+python scripts/restore_holdout.py
 git add scenarios/ Makefile
 git commit -m "factory: restore holdout scenarios for evaluation"
 ```
@@ -182,7 +181,7 @@ make lint && make typecheck && make test
 
 "test" = *should be* the FULL pytest suite, including any tests Codex wrote (already reviewed in Gate 0).
 
-**If fail**: Compile feedback (use this script as aid, but make sure you intervene if the feedback doesn't make sense: `python packages/dark-factory/scripts/compile_feedback.py --iteration N`), loop to Step 3.
+**If fail**: Compile feedback (use this script as aid, but make sure you intervene if the feedback doesn't make sense: `python scripts/compile_feedback.py --iteration N`), loop to Step 3.
 
 ### Step 8: Gate 2 — Non-Functional Requirements
 ```bash
@@ -197,7 +196,7 @@ Gate 2 is **non-blocking** but findings are tracked and feed into:
 
 ### Step 9: Gate 3 — Behavioral Scenarios
 ```bash
-python packages/dark-factory/scripts/run_scenarios.py --timeout 180
+python scripts/run_scenarios.py --timeout 180
 ```
 
 Produces `artifacts/factory/scenario_results.json` with satisfaction score.
@@ -286,7 +285,7 @@ After the project lead merges the PR:
 
 1. **Persist decisions** to the cumulative log:
    ```bash
-   python packages/dark-factory/scripts/persist_decisions.py --pr {PR_NUMBER}
+   python scripts/persist_decisions.py --pr {PR_NUMBER}
    ```
    The script extracts decisions from the review pack HTML (or from the JSON intermediate if available via `--data`) and appends them to `docs/decisions/decision_log.json`. It is idempotent — safe to run multiple times.
 
@@ -328,7 +327,7 @@ If after 3+ iterations:
 - `docs/decisions/decision_log.json` — cumulative decision archive
 - `docs/dark_factory.md` — factory documentation
 - `docs/factory_architecture.html` — factory architecture diagram
-- `packages/pr-review-pack/SKILL.md` — PR review pack skill (Step 12)
+- `https://github.com/joeyfezster/pr-review-pack/tree/main/SKILL.md` — PR review pack skill (Step 12)
 - `specs/*.md` — component specifications
 
 ## Operational Knowledge
